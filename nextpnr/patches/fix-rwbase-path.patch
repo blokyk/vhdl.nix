@@ -1,0 +1,12 @@
+diff --git a/bbaexport.py b/bbaexport.py
+--- a/bbaexport.py
++++ b/bbaexport.py
+@@ -7,7 +7,7 @@
+ 
+ def main():
+ 
+-	rwbase = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")
++	rwbase = os.path.join(os.path.dirname(os.path.realpath(__file__)), "bbaexport_data")
+ 
+ 	parser = argparse.ArgumentParser()
+ 	parser.add_argument("--xray", help="Project X-Ray device database path for current family (e.g. ../prjxray-db/artix7)", type=str, default=os.path.join(rwbase, "external", "prjxray-db", "artix7"))

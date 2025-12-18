@@ -13,15 +13,19 @@ let
   cpFilesTo = targetDir: files:
     lib.concatMapAttrsStringSep
       "\n"
-      (filename: path: ''cp -r "${path}" "${targetDir}"/"${filename}"'')
+      (filename: path: ''
+        echo "Copying ${path} to ${targetDir}/${filename}"
+        cp -r "${path}" "${targetDir}"/"${filename}"
+      '')
       files;
 in
 buildPythonApplication rec {
   pname = "bbaexport";
-  # use the same src tarball and version as the nextpnr-xilinx package
-  inherit (nextpnr-xilinx) version src;
+  version = "0.0.1+${nextpnr-xilinx.version}";
 
-  # the scripts we care about are in `xilinx/python`, so just navigate there directly
+  # use the same src tarball as the nextpnr-xilinx package
+  src = nextpnr-xilinx.src;
+  # the scripts we care about are in `xilinx/`, so just navigate there directly
   sourceRoot = "${src.name}/xilinx/python";
 
   pyproject = true;
@@ -31,21 +35,49 @@ buildPythonApplication rec {
 
   meta.mainProgram = pname;
 
-  patches = [
+  patches = [ ./patches/fix-rwbase-path.patch ];
 
-  ];
+  preConfigure = ''
+      mkdir -p ./bbaexport_data
+    '' +
+    cpFilesTo "./bbaexport_data" {
+      # right now, this embeds all the external file (prjxray-db and
+      # nextpnr-xilinx-meta) into the python package, which is incredibly
+      # wasteful in general, and bloats it up to more than 700MB.
+      # instead, we could use a pattern like `pkgs.yosys.withPlugin [ ... ]`,
+      # where we specify the board(s) or general architecture(s) we want, so
+      # that the user doesn't end up with half a gigabyte of data they won't use.
+      # fixme(bbaexport): implement something like .withBoard/.withDatabase/.withMetadata
+      "./" = "../external/";
+      "./constids.inc" = "../constids.inc";
+      "./chipdb.hexpat" = "../chipdb.hexpat";
+    } +
+    cpFilesTo "." {
+      "pyproject.toml" = writeText "pyproject.toml" ''
+        [build-system]
+        requires = ["setuptools"]
+        build-backend = "setuptools.build_meta"
 
-  # add basic packaging files to reduce friction with `buildPythonApplication`
-  preConfigure = cpFilesTo "." {
-    "setup.py" = writeText "setup.py" ''
-      from setuptools import setup
-      setup(
-        name = "bbaexport",
-        # version = "${version}",
-        entry_points = {"console_scripts": [
-          "bbaexport=bbaexport:main"
-        ]},
-        py_modules = [
+        [project]
+        name = "bbaexport"
+        version = "${version}"
+
+        [project.scripts]
+        bbaexport = "bbaexport:main"
+
+        # [tool.setuptools.packages.find]
+        # where = ["python/"]
+
+        [tool.setuptools.package-data]
+        "bbaexport_data" = [ "*", "**/*" ]
+        #   "external",
+        #   "constids.inc",
+        #   "chipdb.hexpat"
+        # ]
+
+        [tool.setuptools]
+        packages = [ "bbaexport_data" ]
+        py-modules = [
           "bba",
           "bbaexport",
           "bels",
@@ -54,8 +86,7 @@ buildPythonApplication rec {
           "parse_sdf",
           "tileconn",
           "xilinx_device"
-        ],
-      )
-    '';
-  };
+        ]
+      '';
+    };
 }
