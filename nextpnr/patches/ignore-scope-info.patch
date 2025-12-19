@@ -1,0 +1,29 @@
+From d00fdc8f7a20fe0e34911bb0cecb42a876738712 Mon Sep 17 00:00:00 2001
+From: gatecat <gatecat@ds0.me>
+Date: Thu, 11 Jan 2024 15:48:47 +0100
+Subject: [PATCH] frontend: Ignore $scopeinfo
+
+Signed-off-by: gatecat <gatecat@ds0.me>
+---
+ frontend/frontend_base.h | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/frontend/frontend_base.h b/frontend/frontend_base.h
+index a2ac219c45..a96a396efb 100644
+--- a/frontend/frontend_base.h
++++ b/frontend/frontend_base.h
+@@ -447,10 +447,13 @@ template <typename FrontendType> struct GenericFrontend
+     // Import a leaf cell - (white|black)box
+     void import_leaf_cell(HierModuleState &m, const std::string &name, const cell_dat_t &cd)
+     {
++        auto cell_type = impl.get_cell_type(cd);
++        if (cell_type == "$scopeinfo")
++            return;
+         IdString inst_name = unique_name(m.prefix, name, false);
+         ctx->hierarchy[m.path].leaf_cells_by_gname[inst_name] = ctx->id(name);
+         ctx->hierarchy[m.path].leaf_cells[ctx->id(name)] = inst_name;
+-        CellInfo *ci = ctx->createCell(inst_name, ctx->id(impl.get_cell_type(cd)));
++        CellInfo *ci = ctx->createCell(inst_name, ctx->id(cell_type));
+         ci->hierpath = m.path;
+         // Import port directions
+         dict<IdString, PortType> port_dirs;

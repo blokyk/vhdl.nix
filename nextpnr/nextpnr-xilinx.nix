@@ -31,6 +31,10 @@ stdenv.mkDerivation (this: {
     fetchSubmodules = true;
   };
 
+  patches = [
+    ./patches/ignore-scope-info.patch
+  ];
+
   nativeBuildInputs = [
     cmake
     python312
