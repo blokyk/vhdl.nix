@@ -19,6 +19,8 @@ stdenv.mkDerivation (this: {
     fetchSubmodules = true;
   };
 
+  patches = [ ./patches/no-vivado-check.patch ];
+
   nativeBuildInputs = [ cmake ];
 
   buildPhase = ''
